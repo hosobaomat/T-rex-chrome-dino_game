@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dino_game/components/bird.dart';
 import 'package:dino_game/components/obstacle.dart';
 import 'package:dino_game/main.dart';
 import 'package:dino_game/utils/constants.dart';
@@ -83,14 +84,11 @@ class Dino extends SpriteAnimationComponent
     game.overlays.add('end');
   }
 
-  void resetGame() {
-    Constants.startGame = false;
-  }
 
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
-    if (other is Obstacle) {
+    if (other is Obstacle || other is Bird) {
       gameOver();
     }
   }

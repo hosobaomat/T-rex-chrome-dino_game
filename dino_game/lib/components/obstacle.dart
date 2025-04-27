@@ -38,7 +38,7 @@ class Obstacle extends SpriteComponent
 
   @override
   void update(double dt) {
-    position.x -= Constants.gamespeed * dt;
+    position.x -= Constants.currentSpeed * dt;
     if (position.x + size.x < 0) {
       removeFromParent();
     }

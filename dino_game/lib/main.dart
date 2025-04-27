@@ -1,17 +1,21 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:dino_game/components/bird.dart';
+import 'package:dino_game/components/cloud.dart';
 import 'package:dino_game/components/dino.dart';
 import 'package:dino_game/components/ground.dart';
 import 'package:dino_game/components/groundtile.dart';
 import 'package:dino_game/components/obstacle.dart';
 import 'package:dino_game/overlays/game_over_overlay.dart';
 import 'package:dino_game/utils/constants.dart';
+import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(GameWidget(
     game: MyGame(),
     overlayBuilderMap: {
@@ -31,10 +35,23 @@ void main() {
 class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
   late Dino dino;
   double nextSpawnTime = 0;
+  double scoreTime = 0;
+  late TextComponent scoreText;
   @override
-  FutureOr<void> onLoad() {
+  FutureOr<void> onLoad() async {
     dino = Dino();
-    add(dino);
+    await add(dino);
+    scoreText = TextComponent(
+        text: 'HI ${Constants.highscore} ${Constants.score}',
+        position: Vector2(10, 10),
+        anchor: Anchor.topLeft,
+        textRenderer: TextPaint(
+            style: const TextStyle(
+          color: Colors.white,
+          fontSize: 48,
+          fontWeight: FontWeight.bold,
+        )));
+    await add(scoreText);
     nextSpawnTime = Random().nextDouble() * 1.5 + 1.0;
     return super.onLoad();
   }
@@ -53,11 +70,31 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
   @override
   void update(double dt) {
     if (Constants.startGame) {
+      scoreTime += dt;
+      if (scoreTime >= 0.1) {
+        //xu ly su kien va cham score bang 0 o overlay game_over
+        Constants.score += 1;
+        scoreText.text = 'HI ${Constants.highscore} ${Constants.score}';
+        scoreTime = 0;
+      }
       Constants.spawnTime += dt;
+      Constants.spawnCloud += dt;
+      Constants.spawnBird += dt;
       if (Constants.spawnTime > nextSpawnTime) {
         add(Obstacle());
         Constants.spawnTime = 0;
         nextSpawnTime = Random().nextDouble() * 1.5 + 1.0;
+      }
+      if (Constants.spawnCloud > Constants.spawnTime) {
+        add(Cloud());
+        print(Constants.currentSpeed);
+        Constants.spawnCloud = 0;
+      }
+      if (Constants.score >= 0) {
+        if (Constants.spawnBird > 2.5) {
+          add(Bird());
+          Constants.spawnBird = 0;
+        }
       }
     }
     super.update(dt);
@@ -88,9 +125,11 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
   }
 
   void restartGame() {
+    children.whereType<Bird>().forEach((a) => a.removeFromParent());
     children.whereType<GroundTile>().forEach((tile) => tile.removeFromParent());
     children.whereType<Obstacle>().forEach((obs) => obs.removeFromParent());
     children.whereType<Ground>().forEach((g) => g.removeFromParent());
+    children.whereType<Cloud>().forEach((b) => b.removeFromParent());
     dino.removeFromParent();
     Constants.spawnTime = 0;
     Constants.startGame = false;

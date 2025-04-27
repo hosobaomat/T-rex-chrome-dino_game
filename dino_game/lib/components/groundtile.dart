@@ -16,7 +16,7 @@ class GroundTile extends SpriteComponent with HasGameRef<MyGame> {
   @override
   void update(double dt) {
     if (Constants.startGame) {
-      position.x -= Constants.gamespeed * dt;
+      position.x -= Constants.currentSpeed * dt;
       if (position.x + size.x < 0) {
         removeFromParent();
       }
