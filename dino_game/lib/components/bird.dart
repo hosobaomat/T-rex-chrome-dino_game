@@ -25,8 +25,8 @@ class Bird extends SpriteAnimationComponent
     position = Vector2(game.size.x, game.size.y / 2 - heigh[index]);
     animation = sprite;
     add(
-      RectangleHitbox.relative(Vector2(0.7, 0.7),
-          parentSize: size, position: Vector2(0.15 * size.x, 0.05 * size.y)),
+      RectangleHitbox.relative(Vector2(0.8, 0.6),
+          parentSize: size, anchor: Anchor.center),
     );
     return super.onLoad();
   }

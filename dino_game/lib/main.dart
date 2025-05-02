@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:dino_game/components/bird.dart';
+import 'package:dino_game/components/bullet.dart';
 import 'package:dino_game/components/cloud.dart';
 import 'package:dino_game/components/dino.dart';
 import 'package:dino_game/components/ground.dart';
 import 'package:dino_game/components/groundtile.dart';
+import 'package:dino_game/components/gun.dart';
 import 'package:dino_game/components/obstacle.dart';
 import 'package:dino_game/overlays/game_over_overlay.dart';
 import 'package:dino_game/utils/constants.dart';
@@ -36,6 +38,9 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
   late Dino dino;
   double nextSpawnTime = 0;
   double scoreTime = 0;
+  bool hasSpawnGun = false;
+  final double minGap = 250; // Khoảng cách ngang tối thiểu (pixel)
+  final double birdSpawnInterval = 1.5; // giây giữa các lần spawn Bird
   late TextComponent scoreText;
   @override
   FutureOr<void> onLoad() async {
@@ -58,11 +63,20 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
 
   @override
   void onTapDown(TapDownInfo info) {
+    final tapPos = info.eventPosition.global;
     if (!Constants.startGame) {
       dino.StartGame();
       StartGame();
     } else {
-      dino.jump();
+      if (tapPos.x > size.x * 0.7) {
+        if (dino.hasGun) {
+          dino.shoot();
+        } else {
+          dino.jump();
+        }
+      } else {
+        dino.jump();
+      }
     }
     super.onTapDown(info);
   }
@@ -81,20 +95,40 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
       Constants.spawnCloud += dt;
       Constants.spawnBird += dt;
       if (Constants.spawnTime > nextSpawnTime) {
-        add(Obstacle());
-        Constants.spawnTime = 0;
-        nextSpawnTime = Random().nextDouble() * 1.5 + 1.0;
+        final spawnX = size.x;
+        final tooClose = children
+            .whereType<Bird>()
+            .any((bird) => spawnX - bird.position.x < minGap);
+        if (!tooClose) {
+          //kiem tra xem gan do co bird chua neu chua thi spawn
+          add(Obstacle());
+          Constants.spawnTime = 0;
+          nextSpawnTime = Random().nextDouble() * 1.5 + 1.0;
+        }
       }
       if (Constants.spawnCloud > Constants.spawnTime) {
         add(Cloud());
-        print(Constants.currentSpeed);
         Constants.spawnCloud = 0;
       }
-      if (Constants.score >= 0) {
-        if (Constants.spawnBird > 2.5) {
+      if (Constants.score >= 0 && Constants.spawnBird > 2.5) {
+        final spawnX = size.x;
+        final tooClose = children
+            .whereType<Obstacle>()
+            .any((obs) => spawnX - obs.position.x < minGap);
+        if (!tooClose) {
+          //tuong tu ktra xem co obs gan day chua chua thi spawn
           add(Bird());
           Constants.spawnBird = 0;
         }
+      }
+      if (Constants.score % 200 == 0 && !hasSpawnGun) {
+        // neu score chia het 200 va ko co gun thi se spawn tranh bi loi ko xoa dc gun khi
+        //va cham do khi va cham chua xoa ma phai sang frame sau moi xoa ma cap nhat diem bi cham nen se ko xoa duoc gun
+        add(Gun());
+        hasSpawnGun = true;
+      }
+      if (Constants.score % 200 != 0) {
+        hasSpawnGun = false;
       }
     }
     super.update(dt);
@@ -125,11 +159,13 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
   }
 
   void restartGame() {
+    children.whereType<Gun>().forEach((g) => g.removeFromParent());
     children.whereType<Bird>().forEach((a) => a.removeFromParent());
     children.whereType<GroundTile>().forEach((tile) => tile.removeFromParent());
     children.whereType<Obstacle>().forEach((obs) => obs.removeFromParent());
     children.whereType<Ground>().forEach((g) => g.removeFromParent());
     children.whereType<Cloud>().forEach((b) => b.removeFromParent());
+    children.whereType<Bullet>().forEach((B) => B.removeFromParent());
     dino.removeFromParent();
     Constants.spawnTime = 0;
     Constants.startGame = false;
