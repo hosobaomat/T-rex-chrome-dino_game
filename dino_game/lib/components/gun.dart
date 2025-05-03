@@ -7,7 +7,7 @@ import 'package:flame/components.dart';
 
 class Gun extends SpriteComponent with HasGameRef<MyGame>, CollisionCallbacks {
   Gun() : super() {
-    debugMode = true;
+    debugMode = false;
   }
   @override
   FutureOr<void> onLoad() async {

@@ -9,7 +9,7 @@ import 'package:flame/components.dart';
 class Bird extends SpriteAnimationComponent
     with HasGameRef<MyGame>, CollisionCallbacks {
   Bird() : super() {
-    debugMode = true;
+    debugMode = false;
   }
   List heigh = [70, 40];
   @override

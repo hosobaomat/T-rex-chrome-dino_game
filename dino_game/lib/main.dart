@@ -10,14 +10,29 @@ import 'package:dino_game/components/groundtile.dart';
 import 'package:dino_game/components/gun.dart';
 import 'package:dino_game/components/obstacle.dart';
 import 'package:dino_game/overlays/game_over_overlay.dart';
+import 'package:dino_game/overlays/guide.dart';
+import 'package:dino_game/overlays/gun_pickup_overlay.dart';
 import 'package:dino_game/utils/constants.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
+import 'package:path_provider/path_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  //final appDocDir = await getApplicationDocumentsDirectory();
+  //Hive.initFlutter(appDocDir.path);
+  Hive.initFlutter();
+  await Hive.openBox('gameBox');
+  //dat huong man hinh la landscape(nam ngang)
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
   runApp(GameWidget(
     game: MyGame(),
     overlayBuilderMap: {
@@ -30,6 +45,12 @@ void main() {
       // 'setting': (context, MyGame game) {
       //   return SettingOverlay(game: game);
       // }
+      'GunPickupOverlay': (context, MyGame game) {
+        return GunPickupOverlay(game: game);
+      },
+      'game content': (context, MyGame game) {
+        return Guide(game: game,);
+      }
     },
   ));
 }
@@ -44,6 +65,8 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
   late TextComponent scoreText;
   @override
   FutureOr<void> onLoad() async {
+    final box = Hive.box('gameBox');
+    Constants.highscore = box.get('highscore', defaultValue: 0);
     dino = Dino();
     await add(dino);
     scoreText = TextComponent(
@@ -57,6 +80,7 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
           fontWeight: FontWeight.bold,
         )));
     await add(scoreText);
+    overlays.add('game content');
     nextSpawnTime = Random().nextDouble() * 1.5 + 1.0;
     return super.onLoad();
   }
@@ -65,6 +89,7 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
   void onTapDown(TapDownInfo info) {
     final tapPos = info.eventPosition.global;
     if (!Constants.startGame) {
+      overlays.remove('game content');
       dino.StartGame();
       StartGame();
     } else {
@@ -156,6 +181,13 @@ class MyGame extends FlameGame with TapDetector, HasCollisionDetection {
     }
     //
     add(Ground());
+  }
+
+  void showpickupGun() {
+    overlays.add('GunPickupOverlay');
+    Future.delayed(const Duration(seconds: 2), () {
+      overlays.remove('GunPickupOverlay');
+    });
   }
 
   void restartGame() {

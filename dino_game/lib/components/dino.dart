@@ -8,12 +8,12 @@ import 'package:dino_game/main.dart';
 import 'package:dino_game/utils/constants.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:flame/timer.dart';
+import 'package:hive/hive.dart';
 
 class Dino extends SpriteAnimationComponent
     with CollisionCallbacks, HasGameRef<MyGame> {
   Dino() : super() {
-    debugMode = true;
+    debugMode = false;
   }
   double velocity = 0;
   double gravity = 2000;
@@ -27,6 +27,8 @@ class Dino extends SpriteAnimationComponent
   late final Sprite standingSprite;
   late final SpriteAnimation runAnimation;
   late final Sprite jumpAnimation;
+  late final Sprite dieSprite;
+  late final Sprite jumpAKSprite;
   @override
   FutureOr<void> onLoad() async {
     groundY = game.size.y / 2 - 40;
@@ -41,6 +43,8 @@ class Dino extends SpriteAnimationComponent
     runAnimation = SpriteAnimation.spriteList(spriteList, stepTime: 0.09);
     jumpAnimation = await Sprite.load('dino_1.png');
     standingSprite = await Sprite.load('DinoStart.png');
+    dieSprite = await Sprite.load('dino_5.png');
+    jumpAKSprite = await Sprite.load('dino_1_cam_ak.png');
     gunSprite = SpriteAnimation.spriteList(GunSpriteList, stepTime: 0.09);
     size = Vector2(48, 54);
     position = Vector2(50, game.size.y / 2 - 40);
@@ -70,7 +74,9 @@ class Dino extends SpriteAnimationComponent
       velocity = -jumpForce;
       isOnGround = false;
       isJumping = true;
-      animation = SpriteAnimation.spriteList([jumpAnimation], stepTime: 1);
+      animation = hasGun
+          ? SpriteAnimation.spriteList([jumpAKSprite], stepTime: 1)
+          : SpriteAnimation.spriteList([jumpAnimation], stepTime: 1);
     }
   }
 
@@ -94,7 +100,12 @@ class Dino extends SpriteAnimationComponent
     }
   }
 
-  void gameOver() {
+  void gameOver() async {
+    final box = Hive.box('gameBox');
+    int highscore = box.get('highscore', defaultValue: 0);
+    if (Constants.score > highscore) {
+      await box.put(highscore, Constants.score);
+    }
     game.pauseEngine();
     game.overlays.add('end');
   }
@@ -103,10 +114,12 @@ class Dino extends SpriteAnimationComponent
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
     if (other is Obstacle || other is Bird) {
+      animation = SpriteAnimation.spriteList([dieSprite], stepTime: 1);
       gameOver();
     }
     if (other is Gun && !hasGun) {
       hasGun = true;
+      game.showpickupGun();
       animation = gunSprite;
       other.removeFromParent();
       guntimer = Timer(8.0, onTick: () {
@@ -119,7 +132,7 @@ class Dino extends SpriteAnimationComponent
 
   void shoot() {
     if (hasGun) {
-      final BulletPos = Vector2(position.x - 270, position.y -221);
+      final BulletPos = Vector2(position.x - 270, position.y - 221);
       final bullet = Bullet(BulletPos);
       game.add(bullet);
     }

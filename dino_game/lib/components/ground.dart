@@ -7,7 +7,7 @@ import 'package:flutter/painting.dart';
 
 class Ground extends ParallaxComponent {
   Ground() : super() {
-    debugMode = true;
+    debugMode = false;
   }
   @override
   FutureOr<void> onLoad() async {

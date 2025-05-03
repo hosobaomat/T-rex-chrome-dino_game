@@ -9,7 +9,7 @@ import 'package:flame/components.dart';
 class Bullet extends SpriteComponent
     with HasGameRef<MyGame>, CollisionCallbacks {
   Bullet(Vector2 startPosition) : super() {
-    debugMode = true;
+    debugMode = false;
     position = startPosition;
   }
   @override
@@ -22,8 +22,8 @@ class Bullet extends SpriteComponent
       anchor: Anchor.center,
     ));
     //position = Vector2(100 - size.x / 2, game.size.y / 2 - size.y / 2 - 5);
-    print(position.x);
-    print(position.y);
+    //print(position.x);
+    //print(position.y);
     return super.onLoad();
   }
 
